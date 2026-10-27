@@ -6,15 +6,25 @@ $message = "";
 // Fetch statuses for dropdown
 $statuses = $pdo->query("SELECT status_code, description FROM status_code")->fetchAll(PDO::FETCH_ASSOC);
 
+// Fetch reservations for dropdown linking
+try {
+    $reservations = $pdo->query("SELECT reservation_id FROM reservation ORDER BY reservation_id DESC")->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $reservations = [];
+    $message = "Error loading reservations: " . $e->getMessage();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $reservation_id = trim($_POST['reservation_id'] ?? '');
     $payment_amount = trim($_POST['payment_amount'] ?? '');
     $payment_date = trim($_POST['payment_date'] ?? '');
     $payment_status_code = trim($_POST['payment_status_code'] ?? '');
 
-    if (!empty($payment_amount) && !empty($payment_status_code)) {
+    if (!empty($reservation_id) && !empty($payment_amount) && !empty($payment_status_code)) {
         try {
-            $stmt = $pdo->prepare("INSERT INTO payment (payment_amount, payment_date, payment_status_code) VALUES (?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO payment (reservation_id, payment_amount, payment_date, payment_status_code) VALUES (?, ?, ?, ?)");
             $stmt->execute([
+                $reservation_id,
                 $payment_amount, 
                 $payment_date ? $payment_date . ' ' . date('H:i:s') : date('Y-m-d H:i:s'), 
                 $payment_status_code
@@ -25,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = "Error: " . $e->getMessage();
         }
     } else {
-        $message = "Payment Amount and Status Code are required fields.";
+        $message = "Reservation ID, Payment Amount, and Status Code are required fields.";
     }
 }
 ?>
@@ -50,6 +60,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if($message): ?><p><?php echo htmlspecialchars($message); ?></p><?php endif; ?>
     
     <form method="POST">
+        <label>Link to Reservation:</label>
+        <select name="reservation_id" required>
+            <option value="">-- Select Reservation --</option>
+            <?php foreach ($reservations as $res): ?>
+                <option value="<?php echo htmlspecialchars($res['reservation_id']); ?>">
+                    <?php echo htmlspecialchars("Reservation ID: " . $res['reservation_id']); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+
         <label>Payment Amount ($):</label>
         <input type="number" step="0.01" name="payment_amount" required>
 
