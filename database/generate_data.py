@@ -12,7 +12,7 @@ random.seed(42)
 db_config = {
     'host': 'localhost',
     'user': 'root',
-    'password': 'root',
+    'password': '',
     'database': 'harborwing_air'
 }
 
